@@ -128,12 +128,15 @@ echo "Downloading SHA256SUMS.txt..."
 curl -fL "$CHECKSUM_URL" -o "$INSTALL_DIR/SHA256SUMS.txt"
 
 if command -v sha256sum >/dev/null 2>&1; then
+  expected_line="$(awk -v name="$ASSET_NAME" '$2 == name { print $1 "  " name; exit }' "$INSTALL_DIR/SHA256SUMS.txt")"
+  [[ -n "$expected_line" ]] || { echo "Missing checksum entry for ${ASSET_NAME}." >&2; exit 1; }
   (
     cd "$INSTALL_DIR"
-    grep " ${ASSET_NAME}\$" SHA256SUMS.txt | sed "s#  ${ASSET_NAME}\$#  ${LOCAL_BINARY}#" | sha256sum -c -
+    printf '%s\n' "${expected_line%  $ASSET_NAME}  ${LOCAL_BINARY}" | sha256sum -c -
   )
 elif command -v shasum >/dev/null 2>&1; then
-  expected="$(grep " ${ASSET_NAME}\$" "$INSTALL_DIR/SHA256SUMS.txt" | awk '{print $1}')"
+  expected="$(awk -v name="$ASSET_NAME" '$2 == name { print $1; exit }' "$INSTALL_DIR/SHA256SUMS.txt")"
+  [[ -n "$expected" ]] || { echo "Missing checksum entry for ${ASSET_NAME}." >&2; exit 1; }
   actual="$(shasum -a 256 "$INSTALL_DIR/$LOCAL_BINARY" | awk '{print $1}')"
   [[ "$expected" == "$actual" ]] || { echo "Checksum verification failed." >&2; exit 1; }
 else
