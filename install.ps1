@@ -4,6 +4,7 @@ param(
     [string]$InstallDir = (Join-Path (Get-Location) "dan-runtime"),
     [string]$Version = "latest",
     [string]$CpaBaseUrl = "",
+    [string]$DomainsApiUrl = "",
     [string]$CpaToken = "",
     [string]$MailApiUrl = "",
     [string]$MailApiKey = "",
@@ -21,20 +22,13 @@ $repoName = 'dan-binary-releases'
 $defaultDomainsApiUrl = 'https://gpt-up.icoa.pp.ua/v0/management/domains'
 
 function Resolve-DomainsApiUrl {
-    param([string]$BaseUrl)
+    param([string]$ExplicitUrl)
 
-    if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
-        return $defaultDomainsApiUrl
+    if (-not [string]::IsNullOrWhiteSpace($ExplicitUrl)) {
+        return $ExplicitUrl.Trim()
     }
 
-    $trimmed = $BaseUrl.Trim().TrimEnd('/')
-    if ($trimmed.EndsWith('/v0/management/domains', [System.StringComparison]::OrdinalIgnoreCase)) {
-        return $trimmed
-    }
-    if ($trimmed.EndsWith('/v0/management', [System.StringComparison]::OrdinalIgnoreCase)) {
-        return "$trimmed/domains"
-    }
-    return "$trimmed/v0/management/domains"
+    return $defaultDomainsApiUrl
 }
 
 switch ($Component) {
@@ -72,7 +66,7 @@ if ($actualHash -ne $expectedHash.ToLowerInvariant()) {
     throw "Checksum verification failed for $assetName"
 }
 
-$domainsApiUrl = Resolve-DomainsApiUrl $CpaBaseUrl
+$domainsApiUrl = Resolve-DomainsApiUrl $DomainsApiUrl
 Write-Host "Fetching domains from: $domainsApiUrl"
 $domainsPayload = Invoke-RestMethod $domainsApiUrl
 $domains = @($domainsPayload.domains | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })

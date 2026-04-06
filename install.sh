@@ -16,6 +16,7 @@ WEB_TOKEN="linuxdo"
 CLIENT_API_TOKEN="linuxdo"
 PORT="25666"
 DEFAULT_PROXY=""
+DOMAINS_API_URL=""
 DEFAULT_DOMAINS_API_URL="https://gpt-up.icoa.pp.ua/v0/management/domains"
 SYSTEMD="0"
 SERVICE_NAME="dan-web"
@@ -33,6 +34,7 @@ Options:
   --install-dir DIR
   --version latest|vX.Y.Z
   --cpa-base-url URL
+  --domains-api-url URL
   --cpa-token TOKEN
   --mail-api-url URL
   --mail-api-key KEY
@@ -56,6 +58,7 @@ while [[ $# -gt 0 ]]; do
     --install-dir) INSTALL_DIR="${2:-}"; shift 2 ;;
     --version) VERSION="${2:-}"; shift 2 ;;
     --cpa-base-url) CPA_BASE_URL="${2:-}"; shift 2 ;;
+    --domains-api-url) DOMAINS_API_URL="${2:-}"; shift 2 ;;
     --cpa-token) CPA_TOKEN="${2:-}"; shift 2 ;;
     --mail-api-url) MAIL_API_URL="${2:-}"; shift 2 ;;
     --mail-api-key) MAIL_API_KEY="${2:-}"; shift 2 ;;
@@ -98,20 +101,14 @@ trim() {
 }
 
 resolve_domains_api_url() {
-  local base
-  base="$(trim "${CPA_BASE_URL:-}")"
-  if [[ -z "$base" ]]; then
-    printf '%s' "$DEFAULT_DOMAINS_API_URL"
+  local explicit
+  explicit="$(trim "${DOMAINS_API_URL:-}")"
+  if [[ -n "$explicit" ]]; then
+    printf '%s' "$explicit"
     return
   fi
-  base="${base%/}"
-  if [[ "$base" == */v0/management/domains ]]; then
-    printf '%s' "$base"
-  elif [[ "$base" == */v0/management ]]; then
-    printf '%s/domains' "$base"
-  else
-    printf '%s/v0/management/domains' "$base"
-  fi
+
+  printf '%s' "$DEFAULT_DOMAINS_API_URL"
 }
 
 fetch_domains_json() {
