@@ -4,6 +4,8 @@
   "check_interval_minutes": 1,
   "manual_default_threads": 68,
   "manual_register_retries": 3,
+  "otp_retry_count": 12,
+  "otp_retry_interval_seconds": 5,
   "web_token": "linuxdo",
   "client_api_token": "linuxdo",
   "client_notice": "",
