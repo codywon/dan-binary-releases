@@ -4,13 +4,12 @@ param(
     [string]$InstallDir = (Join-Path (Get-Location) "dan-runtime"),
     [string]$Version = "latest",
     [string]$CpaBaseUrl = "",
-    [string]$DomainsApiUrl = "",
     [string]$CpaToken = "",
     [string]$MailApiUrl = "",
     [string]$MailApiKey = "",
+    [string]$UploadApiUrl = "",
+    [string]$UploadApiToken = "",
     [int]$Threads = 68,
-    [int]$OtpRetryCount = 12,
-    [int]$OtpRetryIntervalSeconds = 5,
     [string]$WebToken = "linuxdo",
     [string]$ClientApiToken = "linuxdo",
     [int]$Port = 25666,
@@ -21,17 +20,6 @@ $ErrorActionPreference = 'Stop'
 
 $repoOwner = 'uton88'
 $repoName = 'dan-binary-releases'
-$defaultDomainsApiUrl = 'https://gpt-up.icoa.pp.ua/v0/management/domains'
-
-function Resolve-DomainsApiUrl {
-    param([string]$ExplicitUrl)
-
-    if (-not [string]::IsNullOrWhiteSpace($ExplicitUrl)) {
-        return $ExplicitUrl.Trim()
-    }
-
-    return $defaultDomainsApiUrl
-}
 
 switch ($Component) {
     'dan' {}
@@ -68,14 +56,6 @@ if ($actualHash -ne $expectedHash.ToLowerInvariant()) {
     throw "Checksum verification failed for $assetName"
 }
 
-$domainsApiUrl = Resolve-DomainsApiUrl $DomainsApiUrl
-Write-Host "Fetching domains from: $domainsApiUrl"
-$domainsPayload = Invoke-RestMethod $domainsApiUrl
-$domains = @($domainsPayload.domains | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-if ($domains.Count -eq 0) {
-    throw "Domains API returned an empty or invalid domains list: $domainsApiUrl"
-}
-
 $config = [ordered]@{
     ak_file = 'ak.txt'
     rk_file = 'rk.txt'
@@ -83,8 +63,8 @@ $config = [ordered]@{
     server_config_url = ''
     server_api_token = ''
     domain_report_url = ''
-    upload_api_url = 'https://example.com/v0/management/auth-files'
-    upload_api_token = 'replace-me'
+    upload_api_url = $UploadApiUrl
+    upload_api_token = $UploadApiToken
     oauth_issuer = 'https://auth.openai.com'
     oauth_client_id = 'app_EMoamEEZ73f0CkXaXp7hrann'
     oauth_redirect_uri = 'http://localhost:1455/auth/callback'
@@ -96,17 +76,13 @@ $config | ConvertTo-Json -Depth 10 | Set-Content -Encoding UTF8 (Join-Path $Inst
 $webConfig = [ordered]@{
     target_min_tokens = 15000
     auto_fill_start_gap = 1
-    check_interval_minutes = 1
+    check_interval_minutes = 20
     manual_default_threads = $Threads
     manual_register_retries = 3
-    otp_retry_count = $OtpRetryCount
-    otp_retry_interval_seconds = $OtpRetryIntervalSeconds
+    'otp-retry-count' = 10
+    'otp-retry-interval-seconds' = 1
+    runtime_logs = $false
     web_token = $WebToken
-    client_api_token = $ClientApiToken
-    client_notice = ''
-    minimum_client_version = ''
-    enabled_email_domains = $domains
-    mail_domain_options = $domains
     default_proxy = $DefaultProxy
     use_registration_proxy = -not [string]::IsNullOrWhiteSpace($DefaultProxy)
     cpa_base_url = $CpaBaseUrl

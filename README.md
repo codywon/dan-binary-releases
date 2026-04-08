@@ -18,6 +18,8 @@ curl -fsSL https://raw.githubusercontent.com/uton88/dan-binary-releases/main/ins
   --cpa-token 'replace-me' \
   --mail-api-url 'https://gpt-mail.example.com/' \
   --mail-api-key 'replace-me' \
+  --upload-api-url 'https://gpt-up.example.com/v0/management/auth-files' \
+  --upload-api-token 'replace-me' \
   --threads 68
 ```
 
@@ -30,6 +32,8 @@ curl -fsSL https://raw.githubusercontent.com/uton88/dan-binary-releases/main/ins
   --cpa-token 'replace-me' \
   --mail-api-url 'https://gpt-mail.example.com/' \
   --mail-api-key 'replace-me' \
+  --upload-api-url 'https://gpt-up.example.com/v0/management/auth-files' \
+  --upload-api-token 'replace-me' \
   --threads 68
 ```
 
@@ -43,35 +47,15 @@ curl -fsSL https://raw.githubusercontent.com/uton88/dan-binary-releases/main/ins
   --cpa-token 'replace-me' \
   --mail-api-url 'https://gpt-mail.example.com/' \
   --mail-api-key 'replace-me' \
+  --upload-api-url 'https://gpt-up.example.com/v0/management/auth-files' \
+  --upload-api-token 'replace-me' \
   --threads 68
-```
-
-Linux or macOS with proxy:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/uton88/dan-binary-releases/main/install.sh | bash -s -- \
-  --install-dir "$HOME/dan-runtime" \
-  --background \
-  --default-proxy 'socks5://user:pass@127.0.0.1:1080' \
-  --cpa-base-url 'https://gpt-up.example.com/' \
-  --cpa-token 'replace-me' \
-  --mail-api-url 'https://gpt-mail.example.com/' \
-  --mail-api-key 'replace-me' \
-  --threads 68 \
-  --otp-retry-count 12 \
-  --otp-retry-interval-seconds 5
 ```
 
 Windows PowerShell:
 
 ```powershell
-$p = Join-Path $env:TEMP 'dan-install.ps1'; Invoke-WebRequest 'https://raw.githubusercontent.com/uton88/dan-binary-releases/main/install.ps1' -OutFile $p; & $p -CpaBaseUrl 'https://gpt-up.example.com/' -CpaToken 'replace-me' -MailApiUrl 'https://gpt-mail.example.com/' -MailApiKey 'replace-me' -Threads 68
-```
-
-Windows PowerShell with proxy:
-
-```powershell
-$p = Join-Path $env:TEMP 'dan-install.ps1'; Invoke-WebRequest 'https://raw.githubusercontent.com/uton88/dan-binary-releases/main/install.ps1' -OutFile $p; & $p -DefaultProxy 'socks5://user:pass@127.0.0.1:1080' -CpaBaseUrl 'https://gpt-up.example.com/' -CpaToken 'replace-me' -MailApiUrl 'https://gpt-mail.example.com/' -MailApiKey 'replace-me' -Threads 68
+$p = Join-Path $env:TEMP 'dan-install.ps1'; Invoke-WebRequest 'https://raw.githubusercontent.com/uton88/dan-binary-releases/main/install.ps1' -OutFile $p; & $p -CpaBaseUrl 'https://gpt-up.example.com/' -CpaToken 'replace-me' -MailApiUrl 'https://gpt-mail.example.com/' -MailApiKey 'replace-me' -UploadApiUrl 'https://gpt-up.example.com/v0/management/auth-files' -UploadApiToken 'replace-me' -Threads 68
 ```
 
 ## Default behavior
@@ -80,8 +64,8 @@ $p = Join-Path $env:TEMP 'dan-install.ps1'; Invoke-WebRequest 'https://raw.githu
 - downloads the matching binary for the current OS and CPU architecture
 - writes `config.json`
 - writes `config/web_config.json`
-- fetches the domain list from the default domains API endpoint during install unless you explicitly override it
-- if `default_proxy` is provided, the installer automatically writes `use_registration_proxy=true`
+- writes `upload_api_url` / `upload_api_token` in `config.json` from explicit installer parameters
+- keeps the domain list and other defaults from the bundled example
 
 ## Optional parameters
 
@@ -91,17 +75,16 @@ Linux or macOS installer flags:
 - `--install-dir /path/to/runtime`
 - `--version latest|vX.Y.Z`
 - `--cpa-base-url URL`
-- `--domains-api-url URL`
 - `--cpa-token TOKEN`
 - `--mail-api-url URL`
 - `--mail-api-key KEY`
+- `--upload-api-url URL`
+- `--upload-api-token TOKEN`
 - `--threads 68`
-- `--otp-retry-count 12`
-- `--otp-retry-interval-seconds 5`
 - `--web-token linuxdo`
 - `--client-api-token linuxdo`
 - `--port 25666`
-- `--default-proxy URL`
+- omit `--default-proxy` to keep `default_proxy` empty and `use_registration_proxy=false`
 - `--systemd`
 - `--service-name dan-web`
 - `--background`
@@ -114,30 +97,15 @@ Windows installer parameters match the same fields:
 - `-InstallDir`
 - `-Version`
 - `-CpaBaseUrl`
-- `-DomainsApiUrl`
 - `-CpaToken`
 - `-MailApiUrl`
 - `-MailApiKey`
+- `-UploadApiUrl`
+- `-UploadApiToken`
 - `-Threads`
-- `-OtpRetryCount`
-- `-OtpRetryIntervalSeconds`
 - `-WebToken`
 - `-ClientApiToken`
 - `-Port`
-- `-DefaultProxy`
-
-Supported proxy URL schemes:
-
-- `http://host:port`
-- `https://host:port`
-- `socks5://host:port`
-- `socks5h://host:port`
-
-Domain list source:
-
-- if `domains_api_url` / `DomainsApiUrl` is provided, the installer fetches domains from that explicit URL
-- otherwise, the installer always fetches domains from `https://gpt-up.icoa.pp.ua/v0/management/domains`
-- `cpa_base_url` is still written into config, but it no longer changes the domain list source
 
 ## Release assets
 
@@ -156,3 +124,9 @@ The release publishes these binaries:
 
 - [config.json.example](./examples/config.json.example)
 - [web_config.json.example](./examples/web_config.json.example)
+
+## Current published version
+
+- latest tag: `v0.1.11`
+- source repository: `https://github.com/uton88/OAI-REG-WEB-GO/releases/tag/v0.1.11`
+- public binary release: `https://github.com/uton88/dan-binary-releases/releases/tag/v0.1.11`

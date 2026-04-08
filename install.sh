@@ -11,15 +11,13 @@ CPA_BASE_URL=""
 CPA_TOKEN=""
 MAIL_API_URL=""
 MAIL_API_KEY=""
+UPLOAD_API_URL=""
+UPLOAD_API_TOKEN=""
 THREADS="68"
-OTP_RETRY_COUNT="12"
-OTP_RETRY_INTERVAL_SECONDS="5"
 WEB_TOKEN="linuxdo"
 CLIENT_API_TOKEN="linuxdo"
 PORT="25666"
 DEFAULT_PROXY=""
-DOMAINS_API_URL=""
-DEFAULT_DOMAINS_API_URL="https://gpt-up.icoa.pp.ua/v0/management/domains"
 SYSTEMD="0"
 SERVICE_NAME="dan-web"
 BACKGROUND="0"
@@ -36,13 +34,12 @@ Options:
   --install-dir DIR
   --version latest|vX.Y.Z
   --cpa-base-url URL
-  --domains-api-url URL
   --cpa-token TOKEN
   --mail-api-url URL
   --mail-api-key KEY
+  --upload-api-url URL
+  --upload-api-token TOKEN
   --threads N
-  --otp-retry-count N
-  --otp-retry-interval-seconds N
   --web-token TOKEN
   --client-api-token TOKEN
   --port N
@@ -62,13 +59,12 @@ while [[ $# -gt 0 ]]; do
     --install-dir) INSTALL_DIR="${2:-}"; shift 2 ;;
     --version) VERSION="${2:-}"; shift 2 ;;
     --cpa-base-url) CPA_BASE_URL="${2:-}"; shift 2 ;;
-    --domains-api-url) DOMAINS_API_URL="${2:-}"; shift 2 ;;
     --cpa-token) CPA_TOKEN="${2:-}"; shift 2 ;;
     --mail-api-url) MAIL_API_URL="${2:-}"; shift 2 ;;
     --mail-api-key) MAIL_API_KEY="${2:-}"; shift 2 ;;
+    --upload-api-url) UPLOAD_API_URL="${2:-}"; shift 2 ;;
+    --upload-api-token) UPLOAD_API_TOKEN="${2:-}"; shift 2 ;;
     --threads) THREADS="${2:-}"; shift 2 ;;
-    --otp-retry-count) OTP_RETRY_COUNT="${2:-}"; shift 2 ;;
-    --otp-retry-interval-seconds) OTP_RETRY_INTERVAL_SECONDS="${2:-}"; shift 2 ;;
     --web-token) WEB_TOKEN="${2:-}"; shift 2 ;;
     --client-api-token) CLIENT_API_TOKEN="${2:-}"; shift 2 ;;
     --port) PORT="${2:-}"; shift 2 ;;
@@ -100,41 +96,6 @@ json_escape() {
   value=${value//$'\r'/\\r}
   value=${value//$'\t'/\\t}
   printf '%s' "$value"
-}
-
-trim() {
-  printf '%s' "${1-}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
-}
-
-resolve_domains_api_url() {
-  local explicit
-  explicit="$(trim "${DOMAINS_API_URL:-}")"
-  if [[ -n "$explicit" ]]; then
-    printf '%s' "$explicit"
-    return
-  fi
-
-  printf '%s' "$DEFAULT_DOMAINS_API_URL"
-}
-
-fetch_domains_json() {
-  local url raw compact domains
-  url="$1"
-  raw="$(curl -fsSL "$url")" || {
-    echo "Failed to fetch domains from ${url}" >&2
-    exit 1
-  }
-  compact="$(printf '%s' "$raw" | tr -d '\r\n')"
-  domains="$(printf '%s' "$compact" | sed -n 's/.*"domains"[[:space:]]*:[[:space:]]*\(\[[^]]*]\).*/\1/p')"
-  if [[ -z "$domains" ]]; then
-    echo "Domains API returned an invalid payload: $raw" >&2
-    exit 1
-  fi
-  if [[ "$domains" == "[]" ]]; then
-    echo "Domains API returned an empty domains list." >&2
-    exit 1
-  fi
-  printf '%s' "$domains"
 }
 
 detect_os() {
@@ -226,10 +187,6 @@ fi
 mv -f "$TMP_BINARY" "$INSTALL_DIR/$LOCAL_BINARY"
 chmod +x "$INSTALL_DIR/$LOCAL_BINARY"
 
-DOMAINS_API_URL="$(resolve_domains_api_url)"
-echo "Fetching domains from ${DOMAINS_API_URL}..."
-DOMAINS_JSON="$(fetch_domains_json "$DOMAINS_API_URL")"
-
 cat > "$INSTALL_DIR/config.json" <<EOF
 {
   "ak_file": "ak.txt",
@@ -238,8 +195,8 @@ cat > "$INSTALL_DIR/config.json" <<EOF
   "server_config_url": "",
   "server_api_token": "",
   "domain_report_url": "",
-  "upload_api_url": "https://example.com/v0/management/auth-files",
-  "upload_api_token": "replace-me",
+  "upload_api_url": "$(json_escape "$UPLOAD_API_URL")",
+  "upload_api_token": "$(json_escape "$UPLOAD_API_TOKEN")",
   "oauth_issuer": "https://auth.openai.com",
   "oauth_client_id": "app_EMoamEEZ73f0CkXaXp7hrann",
   "oauth_redirect_uri": "http://localhost:1455/auth/callback",
@@ -252,17 +209,13 @@ cat > "$INSTALL_DIR/config/web_config.json" <<EOF
 {
   "target_min_tokens": 15000,
   "auto_fill_start_gap": 1,
-  "check_interval_minutes": 1,
+  "check_interval_minutes": 20,
   "manual_default_threads": ${THREADS},
   "manual_register_retries": 3,
-  "otp_retry_count": ${OTP_RETRY_COUNT},
-  "otp_retry_interval_seconds": ${OTP_RETRY_INTERVAL_SECONDS},
+  "otp-retry-count": 10,
+  "otp-retry-interval-seconds": 1,
+  "runtime_logs": false,
   "web_token": "$(json_escape "$WEB_TOKEN")",
-  "client_api_token": "$(json_escape "$CLIENT_API_TOKEN")",
-  "client_notice": "",
-  "minimum_client_version": "",
-  "enabled_email_domains": ${DOMAINS_JSON},
-  "mail_domain_options": ${DOMAINS_JSON},
   "default_proxy": "$(json_escape "$DEFAULT_PROXY")",
   "use_registration_proxy": $([[ -n "${DEFAULT_PROXY// }" ]] && printf 'true' || printf 'false'),
   "cpa_base_url": "$(json_escape "$CPA_BASE_URL")",
